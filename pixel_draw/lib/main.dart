@@ -14,10 +14,20 @@ class MainApp extends StatelessWidget {
         appBar: AppBar(
           
           title: Align(
-            alignment: Alignment.centerLeft,
-            child: Text('Draw'),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Image.asset("assets/icon_512.png", width: 50, height:50), // draw image icon in appbar
+                Text('Draw', 
+                  style: TextStyle(fontWeight: FontWeight.bold)
+                ),
+              ]
+            )
+            
           ),
           backgroundColor: Colors.green,
+          
         ),
         body: Center(
           //child: Tile('A', HitType.partial),
