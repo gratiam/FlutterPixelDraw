@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 
+const double TILE_WIDTH  = 50.0;
+const double TILE_HEIGHT = 50.0;
+const double TILE_SPACING_HEIGHT = 0.0;
+const double TILE_SPACING_WIDTH = 0.0;
+const int TILE_COUNT_Y = 10;
+const int TILE_COUNT_X = 10;
 void main() {
+  CData();
+  GridData();
   runApp(const MainApp());
 }
 
@@ -59,7 +67,7 @@ class _PaintPageState extends State<PaintPage> {
         spacing: 3,
         children: [
           
-          tileGrid(),
+          TileGrid(),
           SizedBox(height: 10.0), // space out tiles and buttons
           ColorButtons(),
           
@@ -69,64 +77,175 @@ class _PaintPageState extends State<PaintPage> {
   }
 }
 
-// small static tracker for whether there is a click or not
-class ClickTracker {
-  static bool isClicking = false;
+// small static tracker for user states of click and brush color
+class CData {
+  //static bool isClicking = false;
+  static Color brushColor = Colors.black;
+  static bool tilesInitalized = false;
 }
 
-class tileGrid extends StatelessWidget {
+class GridData {
+  static List<List<Color>> _tileColors = [];
+  static int lastClickedCol = -1;
+  static int lastClickedRow = -1;
+  GridData() {
+    if (!CData.tilesInitalized) {
+      createBoard();
+    }
+  }
+  static void resetBoard() {
+    if (_tileColors.isEmpty) return;
+    if (_tileColors[0].isEmpty) return;
+    for (int row = 0; row< _tileColors.length; row++) {
+      for (int col = 0; col < _tileColors[0].length; col++) {
+        setColor(row, col, Colors.grey);
+      }
+    }
+  }
+  static void createBoard() {
+    _tileColors = []; // clear first
+    // create rows
+    for (int row = 0; row<TILE_COUNT_Y; row++) {
+      _tileColors.add([]);
+      // populate row
+      for (int col = 0; col<TILE_COUNT_X; col++) {
+        _tileColors[row].add(Colors.grey);
+      }
+    }  
+  }
+  static void setColor(int row, int col, Color color) {
+    if (isValid(row, col)) {
+      _tileColors[row][col] = color;
+    }
+  }
+  static bool isValid(int row, int col) {
+    if (row < 0 || row > _tileColors.length-1 ||
+        col < 0 || col > _tileColors.length-1) 
+      {return false;}
+    return true;
+  }
+  static bool isColor(int row, int col, Color color) {
+    if (isValid(row,col)) {
+      return _tileColors[row][col] == color ? true : false;
+    }
+    return false;
+  }
+  static List<List<Color>> getBoard() {
+    return _tileColors;
+  }
+}
+
+class TileGrid extends StatefulWidget {
+  const TileGrid({super.key});
   
   @override
+  State<TileGrid> createState() => _TileGrid();
+}
+
+class _TileGrid extends State<TileGrid> {
+  
+  // access info with [row][col]
+  void updateTile(int row, int col) {
+    setState((){
+      GridData.setColor(row, col, CData.brushColor);
+      print("Updated tile color for [$row, $col]");
+    });
+  }
+  /* Handle a mouse interaction to change tile color */
+  void handleInteraction(Offset relPos) {
+    int col = getSquare(relPos.dx, false);
+    int row = getSquare(relPos.dy, true);
+    print("Tile: [$row, $col]");
+    // if this is the same square as before, don't click.
+    if (!GridData.isColor(row,col,CData.brushColor)) {
+      if (col > -1 && row > -1 && col < TILE_COUNT_X && row < TILE_COUNT_Y) {
+        updateTile(row,col);
+      }
+      else {
+        print("Invalid position.");
+      }
+    }
+
+  }
+  /*
+  GET SQUARE
+  relPos - an X or Y coordinate relative to the container's top left (0) 
+  isVertical - whether to use TILE_HEIGHT and TILE_SPACING_HEIGHT (T) or TILE_WIDTH and TILE_SPACING_WIDTH (F).
+  Returns -1 if click is in padding
+  */
+  int getSquare(double relPos, bool isVertical) {
+    double len = isVertical ? TILE_HEIGHT : TILE_WIDTH;
+    double gap = isVertical ? TILE_SPACING_HEIGHT : TILE_SPACING_WIDTH;
+    
+    int squareNum = (relPos/(len + gap)).floor();
+    double extraBlockPixels = squareNum*(len+gap) + len;
+    // we added as many block+padding units as possible, then added one more block; 
+    //if it's still less than the given position, then the position is between blocks (out of bounds)
+    if (extraBlockPixels < relPos) {
+      return -1; // invalid
+    }
+    return squareNum;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (event) {
-        print("Mouse entered container.");
-        print(ClickTracker.isClicking);
-      },
-      onExit: (event) {
-        ClickTracker.isClicking = false;
-        print("Mouse left the container.");
-        print(ClickTracker.isClicking);
-        },
-      child: GestureDetector(
+    return //MouseRegion(
+      // onEnter: (event) {
+      //   print("Mouse entered container.");
+      //   print(ClickTracker.isClicking);
+      // },
+      // onExit: (event) {
+      //   ClickTracker.isClicking = false;
+      //   print("Mouse left the container.");
+      //   print(ClickTracker.isClicking);
+      //   },
+      /*child:*/ GestureDetector(
+        // TODO: edit to identify locations of each interaction
         onTapDown: (details) {
-          ClickTracker.isClicking = true;
-          print("Started clicking.");
-          print(ClickTracker.isClicking);
+          //CData.isClicking = true;
+          print("Started clicking at local [${details.localPosition})], global [${details.globalPosition}]");
+          //print(CData.isClicking);
+          handleInteraction(details.localPosition);
           },
         
         onTapUp: (details) {
-          ClickTracker.isClicking = false;
+          //CData.isClicking = false;
           print("Stopped clicking.");
-          print(ClickTracker.isClicking);
+          //print(CData.isClicking);
         },
         onPanStart: (details) {
-          ClickTracker.isClicking = true;
+          
+          //CData.isClicking = true;
           print("Started panning.");
-          print(ClickTracker.isClicking);
+          //print(CData.isClicking);
+          handleInteraction(details.localPosition);
         },
         onPanEnd: (details) {
-          ClickTracker.isClicking = false;
+          //CData.isClicking = false;
           print("Stopped panning.");
-          print(ClickTracker.isClicking);
+          //print(CData.isClicking);
         },
+        onPanUpdate: (details) {
+          //print("Pan: local [${details.localPosition}], global [${details.globalPosition}]");
+          handleInteraction(details.localPosition);
+        },
+        
+        child: IntrinsicWidth(child:Container(
+          //color: Colors.blue, // color for testing
 
-        child: Container(
-          color: Colors.blue,
-          width: double.infinity,
           child: Column(
-            spacing: 3,
+            spacing: TILE_SPACING_HEIGHT,
+            
             children: [
-              for (var i in [0,2,5,9,14,20]) 
+              for (List<Color> row in GridData._tileColors) 
                 Row(
-                  
                   mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 3,
+                  spacing: TILE_SPACING_WIDTH,
                   
                   children: [
                     //for (var j in [1,2])
-                    for (var j in [1,2,3,4,5,6])
-                      ClickableTile(),
+                    for (Color colorInfo in row)
+                      ClickableTile(colorInfo),
                   ]
                 ),
             ]
@@ -141,65 +260,61 @@ class tileGrid extends StatelessWidget {
 
 class ClickableTile extends StatefulWidget {
   
-  const ClickableTile({super.key});
-  static Color brushColor = Colors.black;
-  
+  const ClickableTile(this.currentColor, {super.key});
+  final Color currentColor; // the tile's color
   // creates the state
   @override
-  _ClickableTile createState() => _ClickableTile();
+  State<ClickableTile> createState() => _ClickableTile();
 }
 class _ClickableTile extends State<ClickableTile> {  
-
-  Color currentColor = Colors.grey;
-
-  void doClick() {
-    setState(() {
-      paintTile();
-    });
-    print(ClickTracker.isClicking);
-  }
-  void paintTile() {
-    currentColor = ClickableTile.brushColor;
-  }
+  // void doClick() {
+  //   setState(() {
+  //     paintTile();
+  //   });
+  //   print(UserStates.isClicking);
+  // }
+  // void paintTile() {
+  //   currentColor = UserStates.brushColor;
+  // }
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion( // detect clicks
-      onEnter: (details) {
-        print("Hovered tile.");
-          print(ClickTracker.isClicking);
-        if (ClickTracker.isClicking) {
-          print("Is clicked — Setting state.");
-          doClick();
-        }
-      },
+      // onEnter: (details) {
+      //   print("Hovered tile.");
+      //     print(ClickTracker.isClicking);
+      //   if (ClickTracker.isClicking) {
+      //     print("Is clicked — Setting state.");
+      //     doClick();
+      //   }
+      // },
       child: GestureDetector(
-        onTapDown: (details) {
-          doClick();
-        },
-        onPanStart: (details) { 
-          doClick();
-          ClickTracker.isClicking = true;
-          //print("Started panning");
-          //print(ClickTracker.isClicking);
-        },
-        onPanEnd: (details) {
-          ClickTracker.isClicking = false;
-          //print("Stopped Panning");
-          //print(ClickTracker.isClicking);
-        },
-        // release
-        onTapUp: (details) {
-          ClickTracker.isClicking = false;
-          //print("Untapped");
-          //print(ClickTracker.isClicking);
-        },
+        // onTapDown: (details) {
+        //   doClick();
+        // },
+        // onPanStart: (details) { 
+        //   doClick();
+        //   UserStates.isClicking = true;
+        //   print("Started panning");
+        //   print(UserStates.isClicking);
+        // },
+        // onPanEnd: (details) {
+        //   UserStates.isClicking = false;
+        //   print("Stopped Panning");
+        //   print(UserStates.isClicking);
+        // },
+        // // release
+        // onTapUp: (details) {
+        //   UserStates.isClicking = false;
+        //   //print("Untapped");
+        //   //print(ClickTracker.isClicking);
+        // },
         
         child: Container(
-          width: 50,
-          height: 50,
+          width: TILE_WIDTH,
+          height: TILE_HEIGHT,
           // color: _state ? Colors.blue : Colors.grey, // blue if active; grey if not.
-          color: currentColor,
+          color: widget.currentColor,
         ),
       ),
     );
@@ -257,7 +372,7 @@ class _ColorButtons extends State<ColorButtons> {
             onTapDown: (details) {
               // change brush color to clicked button color
               setState(() {
-                ClickableTile.brushColor = _getColor(index);
+                CData.brushColor = _getColor(index);
                 selectedIdx = index;
               });
             },
@@ -274,7 +389,7 @@ class _ColorButtons extends State<ColorButtons> {
                 child: Text(
                   _getColorName(index), // text to display
                   style: TextStyle(
-                      color:Colors.yellowAccent,
+                      color:Colors.orangeAccent,
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
                     )
