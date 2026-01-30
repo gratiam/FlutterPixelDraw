@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 
 void main() {
+  
   CData();
   GridData();
   runApp(const MainApp());
@@ -75,7 +76,7 @@ class _PaintPageState extends State<PaintPage> {
 // small static tracker for user states of click and brush color
 class CData {
   //static bool isClicking = false;
-  static Color brushColor = Colors.black;
+  static Color brushColor = Colors.grey;
   static bool tilesInitalized = false;
 }
 
@@ -86,8 +87,8 @@ class GridData {
   static double tileHeight = 50.0;
   static double tileSpacingHeight = 2.0;
   static double tileSpacingWidth = 2.0;
-  static int    tileCountY = 10;
-  static int    tileCountX = 10;
+  static int    tileCountY = 7;
+  static int    tileCountX = 7;
   GridData() {
     if (!CData.tilesInitalized) {
       createBoard();
@@ -140,6 +141,11 @@ class GridData {
 class TileGrid extends StatefulWidget {
   const TileGrid({super.key});
   
+  static int getMaxTileHeight() {
+    // TODO: implement
+    return -1;
+  }
+
   @override
   State<TileGrid> createState() => _TileGrid();
 }
@@ -155,6 +161,7 @@ class _TileGrid extends State<TileGrid> {
   }
   /* Handle a mouse interaction to change tile color */
   void handleInteraction(Offset relPos) {
+    print(MediaQuery.of(context).size.height);
     int col = getSquare(relPos.dx, false);
     int row = getSquare(relPos.dy, true);
     print("Tile: [$row, $col]");
@@ -214,7 +221,6 @@ class _TileGrid extends State<TileGrid> {
         
         child: IntrinsicWidth(child:Container(
           color: Colors.black, // color for testing
-
           child: Column(
             spacing: GridData.tileSpacingHeight,
             
@@ -225,7 +231,6 @@ class _TileGrid extends State<TileGrid> {
                   spacing: GridData.tileSpacingWidth,
                   
                   children: [
-                    //for (var j in [1,2])
                     for (Color colorInfo in row)
                       ClickableTile(colorInfo),
                   ]
@@ -272,9 +277,9 @@ class ColorButtons extends StatefulWidget {
 }
 class _ColorButtons extends State<ColorButtons> {
   
-  int selectedIdx = 2;
+  int selectedIdx = -1;
   
-  // List of valid colors
+  // List of brush colors
   final _colors = [
     [Colors.black, "Black"],
     [Colors.white, "White"],
@@ -292,12 +297,14 @@ class _ColorButtons extends State<ColorButtons> {
   String _getColorName(int idx) {
     return _colors[idx][1] as String;
   }
-
+  // handles button interaction
   void onSelect(int idx) {
     if (selectedIdx != idx) { // if not already selected
       selectedIdx = idx; // select
+      CData.brushColor = _getColor(idx);
     } else {
-      selectedIdx = 0; // represents no option selected
+      selectedIdx = -1; // represents option already selected; set to invalid
+      CData.brushColor = Colors.grey; // no option selected color
     }
   }
   // structure
@@ -312,8 +319,10 @@ class _ColorButtons extends State<ColorButtons> {
             onTapDown: (details) {
               // change brush color to clicked button color
               setState(() {
-                CData.brushColor = _getColor(index);
-                selectedIdx = index;
+                onSelect(index);
+                
+                // selectedIdx = index;
+                
               });
             },
             // one button
