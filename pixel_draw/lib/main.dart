@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-const double TILE_WIDTH  = 50.0;
-const double TILE_HEIGHT = 50.0;
-const double TILE_SPACING_HEIGHT = 0.0;
-const double TILE_SPACING_WIDTH = 0.0;
-const int TILE_COUNT_Y = 10;
-const int TILE_COUNT_X = 10;
+
 void main() {
   CData();
   GridData();
@@ -86,8 +81,13 @@ class CData {
 
 class GridData {
   static List<List<Color>> _tileColors = [];
-  static int lastClickedCol = -1;
-  static int lastClickedRow = -1;
+  // info on tile sizes
+  static double tileWidth  = 50.0;
+  static double tileHeight = 50.0;
+  static double tileSpacingHeight = 2.0;
+  static double tileSpacingWidth = 2.0;
+  static int    tileCountY = 10;
+  static int    tileCountX = 10;
   GridData() {
     if (!CData.tilesInitalized) {
       createBoard();
@@ -105,10 +105,10 @@ class GridData {
   static void createBoard() {
     _tileColors = []; // clear first
     // create rows
-    for (int row = 0; row<TILE_COUNT_Y; row++) {
+    for (int row = 0; row<GridData.tileCountY; row++) {
       _tileColors.add([]);
       // populate row
-      for (int col = 0; col<TILE_COUNT_X; col++) {
+      for (int col = 0; col<GridData.tileCountX; col++) {
         _tileColors[row].add(Colors.grey);
       }
     }  
@@ -135,6 +135,8 @@ class GridData {
   }
 }
 
+
+
 class TileGrid extends StatefulWidget {
   const TileGrid({super.key});
   
@@ -156,9 +158,9 @@ class _TileGrid extends State<TileGrid> {
     int col = getSquare(relPos.dx, false);
     int row = getSquare(relPos.dy, true);
     print("Tile: [$row, $col]");
-    // if this is the same square as before, don't click.
+    // if this tile is already this color, don't update.
     if (!GridData.isColor(row,col,CData.brushColor)) {
-      if (col > -1 && row > -1 && col < TILE_COUNT_X && row < TILE_COUNT_Y) {
+      if (col > -1 && row > -1 && col < GridData.tileCountX && row < GridData.tileCountY) {
         updateTile(row,col);
       }
       else {
@@ -170,17 +172,17 @@ class _TileGrid extends State<TileGrid> {
   /*
   GET SQUARE
   relPos - an X or Y coordinate relative to the container's top left (0) 
-  isVertical - whether to use TILE_HEIGHT and TILE_SPACING_HEIGHT (T) or TILE_WIDTH and TILE_SPACING_WIDTH (F).
+  isVertical - whether to use GridData.tileHeight and GridData.tileSpacingHeight (T) or GridData.tileWidth and GridData.tileSpacingWidth (F).
   Returns -1 if click is in padding
   */
   int getSquare(double relPos, bool isVertical) {
-    double len = isVertical ? TILE_HEIGHT : TILE_WIDTH;
-    double gap = isVertical ? TILE_SPACING_HEIGHT : TILE_SPACING_WIDTH;
+    double len = isVertical ? GridData.tileHeight : GridData.tileWidth;
+    double gap = isVertical ? GridData.tileSpacingHeight : GridData.tileSpacingWidth;
     
     int squareNum = (relPos/(len + gap)).floor();
     double extraBlockPixels = squareNum*(len+gap) + len;
     // we added as many block+padding units as possible, then added one more block; 
-    //if it's still less than the given position, then the position is between blocks (out of bounds)
+    // if it's still less than the given position, then the position is between that block and block after (out of bounds)
     if (extraBlockPixels < relPos) {
       return -1; // invalid
     }
@@ -189,58 +191,38 @@ class _TileGrid extends State<TileGrid> {
 
   @override
   Widget build(BuildContext context) {
-    return //MouseRegion(
-      // onEnter: (event) {
-      //   print("Mouse entered container.");
-      //   print(ClickTracker.isClicking);
-      // },
-      // onExit: (event) {
-      //   ClickTracker.isClicking = false;
-      //   print("Mouse left the container.");
-      //   print(ClickTracker.isClicking);
-      //   },
-      /*child:*/ GestureDetector(
-        // TODO: edit to identify locations of each interaction
+    return GestureDetector(
         onTapDown: (details) {
-          //CData.isClicking = true;
           print("Started clicking at local [${details.localPosition})], global [${details.globalPosition}]");
-          //print(CData.isClicking);
           handleInteraction(details.localPosition);
           },
         
         onTapUp: (details) {
-          //CData.isClicking = false;
           print("Stopped clicking.");
-          //print(CData.isClicking);
         },
         onPanStart: (details) {
           
-          //CData.isClicking = true;
           print("Started panning.");
-          //print(CData.isClicking);
           handleInteraction(details.localPosition);
         },
         onPanEnd: (details) {
-          //CData.isClicking = false;
           print("Stopped panning.");
-          //print(CData.isClicking);
         },
         onPanUpdate: (details) {
-          //print("Pan: local [${details.localPosition}], global [${details.globalPosition}]");
           handleInteraction(details.localPosition);
         },
         
         child: IntrinsicWidth(child:Container(
-          //color: Colors.blue, // color for testing
+          color: Colors.black, // color for testing
 
           child: Column(
-            spacing: TILE_SPACING_HEIGHT,
+            spacing: GridData.tileSpacingHeight,
             
             children: [
               for (List<Color> row in GridData._tileColors) 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: TILE_SPACING_WIDTH,
+                  spacing: GridData.tileSpacingWidth,
                   
                   children: [
                     //for (var j in [1,2])
@@ -267,56 +249,17 @@ class ClickableTile extends StatefulWidget {
   State<ClickableTile> createState() => _ClickableTile();
 }
 class _ClickableTile extends State<ClickableTile> {  
-  // void doClick() {
-  //   setState(() {
-  //     paintTile();
-  //   });
-  //   print(UserStates.isClicking);
-  // }
-  // void paintTile() {
-  //   currentColor = UserStates.brushColor;
-  // }
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion( // detect clicks
-      // onEnter: (details) {
-      //   print("Hovered tile.");
-      //     print(ClickTracker.isClicking);
-      //   if (ClickTracker.isClicking) {
-      //     print("Is clicked — Setting state.");
-      //     doClick();
-      //   }
-      // },
-      child: GestureDetector(
-        // onTapDown: (details) {
-        //   doClick();
-        // },
-        // onPanStart: (details) { 
-        //   doClick();
-        //   UserStates.isClicking = true;
-        //   print("Started panning");
-        //   print(UserStates.isClicking);
-        // },
-        // onPanEnd: (details) {
-        //   UserStates.isClicking = false;
-        //   print("Stopped Panning");
-        //   print(UserStates.isClicking);
-        // },
-        // // release
-        // onTapUp: (details) {
-        //   UserStates.isClicking = false;
-        //   //print("Untapped");
-        //   //print(ClickTracker.isClicking);
-        // },
         
-        child: Container(
-          width: TILE_WIDTH,
-          height: TILE_HEIGHT,
-          // color: _state ? Colors.blue : Colors.grey, // blue if active; grey if not.
-          color: widget.currentColor,
-        ),
+      child: Container(
+        width: GridData.tileWidth,
+        height: GridData.tileHeight,
+        color: widget.currentColor,
       ),
+      
     );
   }
 } 
@@ -361,13 +304,10 @@ class _ColorButtons extends State<ColorButtons> {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      //mainAxisAlignment: MainAxisAlignment.center,
       spacing: 5,
       runSpacing: 10,
       // for each element
       children: List.generate(_colors.length, (index) {
-        // if selected
-        // if (index != selectedIdx) {
           return GestureDetector(
             onTapDown: (details) {
               // change brush color to clicked button color
